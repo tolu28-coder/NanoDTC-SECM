@@ -1,6 +1,7 @@
 import serial
 import time
 from threading import Event, Thread
+import serial.tools.list_ports
 
 # each 2048 steps is 50 um
 # given in microns
@@ -8,8 +9,8 @@ STEP = 2048/50
 
 class Arduino(object):
     
-    def __init__(self, port=None, baud_rate=9600):
-        self._open(port, baud_rate)
+    def __init__(self, baud_rate=9600):
+        self._open(baud_rate)
         # position in microns
         self.x_pos = 0
         self.y_pos = 0
@@ -18,24 +19,13 @@ class Arduino(object):
         self.not_busy()
         
         
-    def _open(self,port, baud_rate):
+    def _open(self, baud_rate):
         self.find_port()
-        if port:
-            self.port=port
-            try:
-                self.device = serial.Serial(self.port,  baud_rate, timeout = 0.1)
-                
-            except serial.SerialException:
-                raise Exception("Arduino not found")
-            return
         try:
-            self.device = serial.Serial('/dev/ttyACM0',  baud_rate, timeout = 0.1)
+            self.device = serial.Serial(self.port,  baud_rate, timeout = 0.1)
             
         except serial.SerialException:
-            try:
-                self.device = serial.Serial('/dev/ttyACM1',  baud_rate, timeout = 0.1)
-            except serial.SerialException:
-                raise Exception("Arduino not found")
+            raise Exception("Unable to connect")
     
     def check_busy(self):
         return self.is_busy.is_set()
@@ -53,7 +43,14 @@ class Arduino(object):
             
         
     def find_port(self):
-        self.port=None
+        ports = list(serial.tools.list_ports.comports())
+        if not ports:
+            raise Exception("No ports found")
+        for port in ports:
+            if "ACM" in port.name:
+                self.port = port.device
+                print("Using " + self.port + " for Arduino port")
+                break
     
     # _send should not be called as it does no checks if device is busy go through send method
     def _send(self, data):
@@ -83,8 +80,11 @@ class Arduino(object):
         #distance in microns less than 50 microns
         steps = int(STEP*distance)
         direction =  int(steps > 0) # check if positive or negative
-        steps
-        
+        b1 = steps//256 # convert to 2 byte int
+        b2 = steps%256 # convert to 2 byte int
+        x = "x" +chr(direction) + chr(b2) +chr(b1) + chr(0) +chr(0) # create byte string
+        x = bytes(x, "utf-8") # actually convert into bytes
+        # can construct message byte by byte
         pass
     
     def move_y(self,direction, distance):
@@ -112,5 +112,5 @@ class Arduino(object):
             pass
         if z != self.z_pos:
             pass
-        
-            
+
+
