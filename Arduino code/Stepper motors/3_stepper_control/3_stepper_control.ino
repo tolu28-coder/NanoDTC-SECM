@@ -11,7 +11,7 @@ bool is_pos;
 
 int steps_per_revolution = 2048;
 // Pins entered in sequence  IN1 - IN3 - IN2 - IN4
-Stepper stepper_x = Stepper(steps_per_revolution, 8, 10, 9, 11);
+Stepper stepper_x = Stepper(steps_per_revolution, 2, 4, 3, 5);
 //Stepper stepper_y = Stepper(steps_per_revolution, 5, 7, 6, 8);
 //Stepper stepper_z = Stepper(steps_per_revolution, 9, 11, 10, 12);
 
@@ -31,7 +31,7 @@ void send_all_good(){
   // send all done raspberry so can remove lock on send
   // or send position if is_pos is true 
   // should do stuff
-  
+  Serial.write(1);
 }
 
 void transcribe_message() {
@@ -40,27 +40,27 @@ void transcribe_message() {
   int to_move = buffToInteger(steps);
   if (Message[0] == 'x'){
     // To move in x-dimension
-    Serial.println("In x");
+    //Serial.println("In x");
     move_x(to_move);
   }
   if (Message[0] == 'y'){
     // To move in y-dimension
-    Serial.println("In y");
+    //Serial.println("In y");
     move_y(to_move);
   }
   if (Message[0] == 'z'){
     // To move in z-dimension
-    Serial.println("In z");
+    //Serial.println("In z");
     move_z(to_move);
   }
-  int to_wait = ((to_move/steps_per_revolution)*(60/50)*1000) + 50; // gets how long to wait then adds 50ms 
+  int to_wait = ((to_move/steps_per_revolution)*((60/5)*1000)) + 50; // gets how long to wait then adds 50ms 
   delay(to_wait);
   }
 
 void move_x(int to_move){
   bool direction;
-  if (Message[1] == '1'){
-    // then move in forward direction
+  if (Message[1] == 1){
+     //then move in forward direction
     stepper_x.setSpeed(5); // setting speed to 2.5 mm per minute (50 rpm)
     stepper_x.step(to_move);
   }
@@ -120,7 +120,7 @@ void loop() {
     transcribe_message();
     //steps[2] = Message[4];
     //steps[3] = Message[5];
-    Serial.println(x);
+    //Serial.println(x);
     Serial.flush();
     send_all_good();
   }
