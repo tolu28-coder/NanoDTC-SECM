@@ -8,8 +8,8 @@ STEP = 2048/50
 
 class Arduino(object):
     
-    def __init__(self, baud_rate=9600):
-        self._open(baud_rate)
+    def __init__(self, port=None, baud_rate=9600):
+        self._open(port, baud_rate)
         # position in microns
         self.x_pos = 0
         self.y_pos = 0
@@ -18,8 +18,16 @@ class Arduino(object):
         self.not_busy()
         
         
-    def _open(self, baud_rate):
+    def _open(self,port, baud_rate):
         self.find_port()
+        if port:
+            self.port=port
+            try:
+                self.device = serial.Serial(self.port,  baud_rate, timeout = 0.1)
+                
+            except serial.SerialException:
+                raise Exception("Arduino not found")
+            return
         try:
             self.device = serial.Serial('/dev/ttyACM0',  baud_rate, timeout = 0.1)
             
