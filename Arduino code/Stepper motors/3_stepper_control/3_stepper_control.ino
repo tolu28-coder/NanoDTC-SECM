@@ -53,7 +53,7 @@ void transcribe_message() {
     //Serial.println("In z");
     move_z(to_move);
   }
-  int to_wait = ((to_move/steps_per_revolution)*((60/5)*1000)) + 50; // gets how long to wait then adds 50ms 
+  int to_wait = ((to_move/steps_per_revolution)*((60/5)*1000)) + 50; // gets how long to wait then adds 50ms
   delay(to_wait);
   }
 
@@ -121,7 +121,7 @@ void loop() {
     //steps[2] = Message[4];
     //steps[3] = Message[5];
     //Serial.println(x);
-    Serial.flush();
+    //Serial.flush();
     send_all_good();
   }
 }

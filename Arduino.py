@@ -66,11 +66,12 @@ class Arduino(object):
     
     def send_and_receive(self, data):
         self.send(data)
-        while self.device.in_waiting:
-            state = self.device.read(1)
-            self.not_busy()
-            print(state)
-            return state
+        while not self.device.in_waiting:
+            time.sleep(0.1)
+        state = self.device.readline()
+        self.not_busy()
+        print(state)
+        return state
     
     def move_x(self,direction, distance):
         #distance in microns less than 50 microns
@@ -101,7 +102,7 @@ class Arduino(object):
     def move_to_z(self, z):
         pass
     
-    def move_to(x, y, z):
+    def move_to(self, x, y, z):
         if x != self.x_pos:
             self.move_to_x(x)
         if y != self.y_pos:
