@@ -68,7 +68,7 @@ class Arduino(object):
         self.send(data)
         while not self.device.in_waiting:
             time.sleep(0.1)
-        state = self.device.readline()
+        state = self.device.read(1)
         self.not_busy()
         print(state)
         return state
@@ -110,4 +110,13 @@ class Arduino(object):
         if z != self.z_pos:
             pass
 
+if __name__=="__main__":
+    device = Arduino()
+    x = "x" +chr(0) + chr(0) +chr(8) + chr(0) +chr(0) # create byte string
+    x = bytes(x, "utf-8") # actually convert into bytes
+    y = "y" +chr(1) + chr(0) +chr(8) + chr(0) +chr(0) # create byte string
+    y = bytes(y, "utf-8") # actually convert into bytes
+    #device._send(x)
+
+    
 

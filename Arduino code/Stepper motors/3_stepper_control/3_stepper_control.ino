@@ -12,8 +12,9 @@ bool is_pos;
 int steps_per_revolution = 2048;
 // Pins entered in sequence  IN1 - IN3 - IN2 - IN4
 Stepper stepper_x = Stepper(steps_per_revolution, 2, 4, 3, 5);
-//Stepper stepper_y = Stepper(steps_per_revolution, 5, 7, 6, 8);
-//Stepper stepper_z = Stepper(steps_per_revolution, 9, 11, 10, 12);
+Stepper stepper_y = Stepper(steps_per_revolution, 10, 12, 11, 13);
+Stepper stepper_z = Stepper(steps_per_revolution, 6, 8, 7, 9);
+
 
 // char 1 -> specify x, y, z 
 // char 2 -> specify direction, forward(1) and backward(0) 
@@ -31,7 +32,7 @@ void send_all_good(){
   // send all done raspberry so can remove lock on send
   // or send position if is_pos is true 
   // should do stuff
-  Serial.write(1);
+  //Serial.write(1);
 }
 
 void transcribe_message() {
@@ -43,6 +44,7 @@ void transcribe_message() {
     //Serial.println("In x");
     move_x(to_move);
   }
+  
   if (Message[0] == 'y'){
     // To move in y-dimension
     //Serial.println("In y");
@@ -53,8 +55,8 @@ void transcribe_message() {
     //Serial.println("In z");
     move_z(to_move);
   }
-  int to_wait = ((to_move/steps_per_revolution)*((60/5)*1000)) + 50; // gets how long to wait then adds 50ms
-  delay(to_wait);
+  //int to_wait = ((to_move/steps_per_revolution)*((60/5)*1000)) + 50; // gets how long to wait then adds 50ms
+  //delay(to_wait);
   }
 
 void move_x(int to_move){
@@ -74,26 +76,30 @@ void move_x(int to_move){
 
 void move_y(int to_move){
   bool direction;
-  if (Message[1] == '1'){
+  if (Message[1] == 1){
     // then move in forward direction
-    //stepper_y.step(to_move);
+    stepper_y.setSpeed(5);
+    stepper_y.step(to_move);
   }
   else{
     // then move in backwards direction
-    //stepper_y.step(-to_move);
+    stepper_y.setSpeed(5);
+    stepper_y.step(-to_move);
   }
   // then wait until done 
 }
 
 void move_z(int to_move){
   bool direction;
-  if (Message[1] == '1'){
+  if (Message[1] == 1){
     // then move in forward direction
-    //stepper_z.step(to_move);
+    stepper_z.setSpeed(5);
+    stepper_z.step(to_move);
   }
   else{
     // then move in backwards direction
-    //stepper_z.step(-to_move);
+    stepper_z.setSpeed(5);
+    stepper_z.step(-to_move);
   }
   // then wait until done 
 }
@@ -104,9 +110,9 @@ void setup() {
     // Waits for serial to connect need to be connected via usb
   }
   
-  //stepper_x.setSpeed(5); // setting speed to 2.5 mm per minute (50 rpm)
-  //stepper_y.setSpeed(5); // setting speed to 2.5 mm per minute (50 rpm)
-  //stepper_z.setSpeed(5); // setting speed to 2.5 mm per minute (50 rpm)
+  stepper_x.setSpeed(5); // setting speed to 2.5 mm per minute (50 rpm)
+  stepper_y.setSpeed(5); // setting speed to 2.5 mm per minute (50 rpm)
+  stepper_z.setSpeed(5); // setting speed to 2.5 mm per minute (50 rpm)
   
 }
 
@@ -121,7 +127,7 @@ void loop() {
     //steps[2] = Message[4];
     //steps[3] = Message[5];
     //Serial.println(x);
-    //Serial.flush();
-    send_all_good();
+    Serial.flush();
+    //send_all_good();
   }
 }
