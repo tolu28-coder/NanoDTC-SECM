@@ -7,6 +7,25 @@ import serial.tools.list_ports
 # given in microns
 STEP = 2048/50 
 
+class Messenger(object):
+
+    def __init__(self):
+        self.callback = self._notgiven
+
+    def _notgiven(self):
+        raise NotImplementedError("Callback is not given")
+
+    def setup(self, callback):
+        self.callback = callback
+
+    def notify(self):
+        self.callback()
+
+    def notify_with_args(self, *args, **kwargs):
+        self.callback(*args, **kwargs)
+        
+
+
 class Arduino(object):
     
     def __init__(self, baud_rate=9600):
@@ -17,6 +36,7 @@ class Arduino(object):
         self.z_pos = 0
         self.is_busy = Event()
         self.not_busy()
+        self.motion_done_messenger = Messenger()
         
         
     def _open(self, baud_rate):
@@ -73,42 +93,44 @@ class Arduino(object):
         print(state)
         return state
     
-    def move_x(self,direction, distance):
+    def move_x(self, distance):
         #distance in microns less than 50 microns
-        steps = int(STEP*distance)
-        direction =  int(steps > 0) # check if positive or negative
-        b1 = steps//256 # convert to 2 byte int
-        b2 = steps%256 # convert to 2 byte int
+        steps = int(abs(STEP*distance))
+        direction =  int(distance > 0) # check if positive or negative
+        print(direction)
+        b1 = int(steps//256) # convert to 2 byte int
+        b2 = int(steps%256) # convert to 2 byte int
         x = "x" +chr(direction) + chr(b2) +chr(b1) + chr(0) +chr(0) # create byte string
         x = bytes(x, "utf-8") # actually convert into bytes
         # can construct message byte by byte
-        pass
+        self.send_and_receive(x)
+        self.motion_done_messenger.notify()
+        
     
-    def move_y(self,direction, distance):
-        #distance in microns
-        pass
+    def move_y(self, distance):
+        #distance in microns less than 50 microns
+        steps = int(abs(STEP*distance))
+        direction =  int(distance > 0) # check if positive or negative
+        b1 = steps//256 # convert to 2 byte int
+        b2 = steps%256 # convert to 2 byte int
+        y = "y" +chr(direction) + chr(b2) +chr(b1) + chr(0) +chr(0) # create byte string
+        y = bytes(y, "utf-8") # actually convert into bytes
+        # can construct message byte by byte
+        self.send_and_receive(y)
+        self.motion_done_messenger.notify()
 
     
-    def move_z(self,direction, distance):
-        #distance in microns
-        pass
-    
-    def move_to_x(self, x):
-        pass
-    
-    def move_to_y(self, y):
-        pass
-    
-    def move_to_z(self, z):
-        pass
-    
-    def move_to(self, x, y, z):
-        if x != self.x_pos:
-            self.move_to_x(x)
-        if y != self.y_pos:
-            pass
-        if z != self.z_pos:
-            pass
+    def move_z(self, distance):
+        #distance in microns less than 50 microns
+        steps = int(abs(STEP*distance))
+        direction =  int(distance > 0) # check if positive or negative
+        b1 = steps//256 # convert to 2 byte int
+        b2 = steps%256 # convert to 2 byte int
+        z = "y" +chr(direction) + chr(b2) +chr(b1) + chr(0) +chr(0) # create byte string
+        z = bytes(z, "utf-8") # actually convert into bytes
+        # can construct message byte by byte
+        self.send_and_receive(z)
+        self.motion_done_messenger.notify()
 
 if __name__=="__main__":
     device = Arduino()

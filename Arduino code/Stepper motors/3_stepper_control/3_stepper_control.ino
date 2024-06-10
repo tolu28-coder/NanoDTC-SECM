@@ -32,7 +32,7 @@ void send_all_good(){
   // send all done raspberry so can remove lock on send
   // or send position if is_pos is true 
   // should do stuff
-  //Serial.write(1);
+  Serial.write(1);
 }
 
 void transcribe_message() {
@@ -55,16 +55,16 @@ void transcribe_message() {
     //Serial.println("In z");
     move_z(to_move);
   }
-  //int to_wait = ((to_move/steps_per_revolution)*((60/5)*1000)) + 50; // gets how long to wait then adds 50ms
-  //delay(to_wait);
+  int to_wait = ((to_move/steps_per_revolution)*((60/5)*1000)) + 50; // gets how long to wait then adds 50ms
+  delay(to_wait);
   }
 
 void move_x(int to_move){
   bool direction;
   if (Message[1] == 1){
      //then move in forward direction
-    stepper_x.setSpeed(5); // setting speed to 2.5 mm per minute (50 rpm)
-    stepper_x.step(to_move);
+     stepper_x.setSpeed(5); // setting speed to 2.5 mm per minute (50 rpm)
+     stepper_x.step(to_move);
   }
   else{
     // then move in backwards direction
@@ -110,9 +110,9 @@ void setup() {
     // Waits for serial to connect need to be connected via usb
   }
   
-  stepper_x.setSpeed(5); // setting speed to 2.5 mm per minute (50 rpm)
-  stepper_y.setSpeed(5); // setting speed to 2.5 mm per minute (50 rpm)
-  stepper_z.setSpeed(5); // setting speed to 2.5 mm per minute (50 rpm)
+  stepper_x.setSpeed(5); // setting speed to 250 microns per minute (5 rpm)
+  stepper_y.setSpeed(5); // setting speed to 250 microns per minute (5 rpm)
+  stepper_z.setSpeed(5); // setting speed to 250 microns per minute (5 rpm)
   
 }
 
@@ -127,7 +127,7 @@ void loop() {
     //steps[2] = Message[4];
     //steps[3] = Message[5];
     //Serial.println(x);
-    Serial.flush();
-    //send_all_good();
+    //Serial.flush();
+    send_all_good();
   }
 }
