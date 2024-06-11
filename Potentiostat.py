@@ -440,5 +440,100 @@ class Potentiostat(object):
                     QtGui.QMessageBox.critical(mainwidget, "Logging error!", "Logging error!")
                     hardware_log_checkbox.setChecked(False) # Disable logging in case of file errors
     
+    @staticmethod
+    def cv_getparams():
+        """Retrieve the CV parameters from the GUI input fields and store them in a global dictionary. If succesful, return True."""
+        cv_parameters = {}
+        cv_parameters['lbound'] = float(0)
+        cv_parameters['ubound'] = float(0)
+        cv_parameters['startpot'] = float(0)
+        cv_parameters['stoppot'] = float(0)
+        cv_parameters['scanrate'] = float(0)/1e3 # Convert to V/s
+        cv_parameters['numcycles'] = int(0)
+        cv_parameters['numsamples'] = int(0)
+        cv_parameters['filename'] = str(0)
+        return True
     
+    @staticmethod
+    def cv_validate_parameters(cv_parameters):
+        """Check if the chosen CV parameters make sense. If so, return True."""
+        if cv_parameters['ubound'] < cv_parameters['lbound']:
+            QtGui.QMessageBox.critical(mainwidget, "CV error", "The upper bound cannot be lower than the lower bound.")
+            return False
+        if cv_parameters['scanrate'] == 0:
+            QtGui.QMessageBox.critical(mainwidget, "CV error", "The scan rate cannot be zero.")
+            return False
+        if (cv_parameters['scanrate'] > 0) and (cv_parameters['ubound'] < cv_parameters['startpot']):
+            QtGui.QMessageBox.critical(mainwidget, "CV error", "For a positive scan rate, the start potential must be lower than the upper bound.")
+            return False
+        if (cv_parameters['scanrate'] < 0) and (cv_parameters['lbound'] > cv_parameters['startpot']):
+            QtGui.QMessageBox.critical(mainwidget, "CV error", "For a negative scan rate, the start potential must be higher than the lower bound.")
+            return False
+        if cv_parameters['numsamples'] < 1:
+            QtGui.QMessageBox.critical(mainwidget, "CV error", "The number of samples to average must be at least 1.")
+            return False
+        return True
     
+
+    def cv_start(self):
+        """Initialize the CV measurement."""
+        global cv_time_data, cv_potential_data, cv_current_data, cv_plot_curve, cv_outputfile, state, skipcounter
+        if check_state([States.Idle,States.Stationary_Graph]) and cv_getparams() and cv_validate_parameters() and validate_file(cv_parameters['filename']):
+            cv_outputfile = open(cv_parameters['filename'], 'w', 1) # 1 means line-buffered
+            cv_outputfile.write("Elapsed time(s)\tPotential(V)\tCurrent(A)\n")
+            self.set_output(0, cv_parameters['startpot'])
+            self.set_control_mode(False) # Potentiostatic control
+            hardware_manual_control_range_dropdown.setCurrentIndex(0) # Start at highest current range
+            self.set_current_range()
+            time.sleep(.1) # Allow DAC some time to settle
+            cv_time_data = AverageBuffer(cv_parameters['numsamples']) # Holds averaged data for elapsed time
+            cv_potential_data = AverageBuffer(cv_parameters['numsamples']) # Holds averaged data for potential
+            cv_current_data = AverageBuffer(cv_parameters['numsamples']) # Holds averaged data for current
+            self.set_cell_status(True) # Cell on
+            time.sleep(.1) # Allow feedback loop some time to settle
+            self.read_potential_current()
+            time.sleep(.1)
+            self.read_potential_current() # Two reads are necessary because each read actually returns the result of the previous conversion
+            hardware_manual_control_range_dropdown.setCurrentIndex(get_next_enabled_current_range(current_range_from_current(current))) # Autorange based on the measured current
+            self.set_current_range()
+            time.sleep(.1)
+            self.read_potential_current()
+            time.sleep(.1)
+            self.read_potential_current()
+            hardware_manual_control_range_dropdown.setCurrentIndex(get_next_enabled_current_range(current_range_from_current(current))) # Another autorange, just to be sure
+            self.set_current_range()
+            preview_cancel_button.hide()
+            try: # Set up the plotting area
+                legend.scene().removeItem(legend)
+            except AttributeError:
+                pass
+            plot_frame.clear()
+            plot_frame.enableAutoRange()
+            plot_frame.setLabel('bottom', 'Potential', units="V")
+            plot_frame.setLabel('left', 'Current', units="A")
+            cv_plot_curve = plot_frame.plot(pen='y') # Plot CV in yellow
+            log_message("CV measurement started. Saving to: %s"%cv_parameters['filename'])
+            state = States.Measuring_CV
+            skipcounter = 2 # Skip first two data points to suppress artifacts
+            cv_parameters['starttime'] = timeit.default_timer()
+    
+    def cv_update(self):
+        """Add a new data point to the CV measurement (should be called regularly)."""
+        global state, skipcounter
+        elapsed_time = timeit.default_timer()-cv_parameters['starttime']
+        cv_output = cv_sweep(elapsed_time, cv_parameters['startpot'], cv_parameters['stoppot'], cv_parameters['ubound'], cv_parameters['lbound'], cv_parameters['scanrate'], cv_parameters['numcycles'])
+        if cv_output == None: # This signifies the end of the CV scan
+            cv_stop(interrupted=False)
+        else:
+            set_output(0, cv_output) # Output a new potential value
+            read_potential_current() # Read new potential and current
+            if skipcounter == 0: # Process new measurements
+                cv_time_data.add_sample(elapsed_time)
+                cv_potential_data.add_sample(potential)
+                cv_current_data.add_sample(1e-3*current) # Convert from mA to A
+                if len(cv_time_data.samples) == 0 and len(cv_time_data.averagebuffer) > 0: # Check if a new average was just calculated
+                    cv_outputfile.write("%e\t%e\t%e\n"%(cv_time_data.averagebuffer[-1],cv_potential_data.averagebuffer[-1],cv_current_data.averagebuffer[-1])) # Write it out
+                    cv_plot_curve.setData(cv_potential_data.averagebuffer,cv_current_data.averagebuffer) # Update the graph
+                skipcounter = auto_current_range() # Update the graph
+            else: # Wait until the required number of data points is skipped
+                skipcounter -= 1
