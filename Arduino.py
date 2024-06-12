@@ -59,18 +59,22 @@ class Arduino(object):
     
     def __del__(self):
         self.device.close()
-        super().__del__()
             
         
     def find_port(self):
         ports = list(serial.tools.list_ports.comports())
+        print(ports)
         if not ports:
             raise Exception("No ports found")
         for port in ports:
+            """
             if "ACM" in port.name:
                 self.port = port.device
                 print("Using " + self.port + " for Arduino port")
-                break
+            """
+            self.port = port.device
+            print("Using " + self.port + " for Arduino port")
+            break
     
     # _send should not be called as it does no checks if device is busy go through send method
     def _send(self, data):

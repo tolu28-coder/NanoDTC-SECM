@@ -25,7 +25,7 @@ class MotionController(object):
         
         
         
-    def generate_xy_image_scan(x_range, y_range, steps):
+    def generate_xy_image_scan(self, x_range, y_range, steps):
         x_steps = x_range // steps
         y_steps = y_range // steps
         instruction = []
@@ -56,33 +56,29 @@ class MotionController(object):
         instruction = [[0,0,z_steps]]*steps
         return instruction
     
+    def get_negative_approach_curve(self, z_range, steps):
+        z_steps = z_range//steps
+        instruction = [[0,0,-z_steps]]*steps
+        return instruction
+    
     def move(self, x, y, z):
         if x:
             self.move_x(x)
-            while self.check_busy():
-                time.sleep(0.1)
         if y:
             self.move_y(y)
-            while self.check_busy():
-                time.sleep(0.1)
         if z:
             self.move_z(z)
-            while self.check_busy():
-                time.sleep(0.1)
 
     def move_x(self, x):
-        self.set_busy()
-        thread = Thread(target=self.arduino.move_x, args=[x])
+        self.arduino.move_x(x)
         
 
     def move_y(self, y):
-        self.set_busy()
-        thread = Thread(target=self.arduino.move_y, args=[y])
+        self.arduino.move_y(y)
 
 
     def move_z(self, z):
-        self.set_busy()
-        thread = Thread(target=self.arduino.move_z, args=[z])
+        self.arduino.move_z(z)
     
     
     

@@ -1,7 +1,9 @@
 from MotionController import MotionController
 from Arduino import Arduino
-from Potentiostat import Potentiostat
+#from Potentiostat import Potentiostat
 import numpy as np
+import time
+#from Palmsens_potentiostat import Palmsens
 
 
 class SECM(object):
@@ -10,24 +12,48 @@ class SECM(object):
         self.arduino = Arduino()
         self.motion_controller = MotionController(self.arduino)
         #self.potentiostat = Potentiostat()
+        #self.potentiostat = Palmsens()
     
-    def current_scan(self, x_range, y_range, steps, file):
+    def current_scan(self, voltage, x_range, y_range, steps, file):
         data = np.zeros([steps, steps])
         index, instruction = self.motion_controller.generate_xy_image_scan(x_range, y_range, steps)
         for i in range(len(index)):
-            data[index[i]] = self.measure_current()
-            self.motion_controller.move(instruction[i][0], instruction[i][1], instruction[i][2])
+            data[index[i]] = self.measure_current(voltage)
+            tmp = instruction[i]
+            print(tmp)
+            self.motion_controller.move(tmp[0], tmp[1], tmp[2])
         np.savetxt(file, data)
 
-    def measure_current(self, to_average=5):
-        buf = []
-        for i in range(to_average):
-            buf.append(self.current)
-        return sum(buf)/to_average
+
+    def approach_curve(self):
+        pass
     
-    @property
-    def current(self):
-        return self.potentiostat.measure_current()
+    
+    def approach_curve_scan(self, voltage, z_range, steps, order="Ascending", file="test.txt"):
+        data = []
+        if order == "Ascending":    
+            instructions = self.motion_controller.get_approach_curve(z_range, steps)
+            z = np.linspace(0,z_range, steps)
+        elif order == "Descending":    
+            instructions = self.motion_controller.get_negative_approach_curve(z_range, steps)
+            z = np.linspace(-z_range,0, steps)
+        for i in instructions:
+            data.append(self.measure_current(voltage))
+            self.motion_controller.move(i)
+        data = np.array(data)
+        to_save = np.array([z, data])
+        np.savetxt(file, to_save)
+        
+        
+        
+
+    def measure_current(self, voltage):
+        current, v = self.chronoamperometry(e = voltage)
+        return sum(current)/len(current)
+
+    
+    def chronoamperometry(self, interval_time=0.1, e=1, run_time=1, equilibration_time=1.0):
+        return self.potentiostat.chronoamperometry(interval_time=0.1, e=1, run_time=1, equilibration_time=1.0)
     
     def set_voltage(self, v):
         pass
