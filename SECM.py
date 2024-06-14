@@ -3,7 +3,7 @@ from Arduino import Arduino
 #from Potentiostat import Potentiostat
 import numpy as np
 import time
-#from Palmsens_potentiostat import Palmsens
+from Palmsens_potentiostat import Palmsens
 
 
 class SECM(object):
@@ -12,7 +12,7 @@ class SECM(object):
         self.arduino = Arduino()
         self.motion_controller = MotionController(self.arduino)
         #self.potentiostat = Potentiostat()
-        #self.potentiostat = Palmsens()
+        self.potentiostat = Palmsens()
     
     def current_scan(self, voltage, x_range, y_range, steps, file):
         data = np.zeros([steps, steps])
@@ -33,13 +33,14 @@ class SECM(object):
         data = []
         if order == "Ascending":    
             instructions = self.motion_controller.get_approach_curve(z_range, steps)
-            z = np.linspace(0,z_range, steps)
+            z = np.linspace(0,z_range, steps, endpoint=False)
         elif order == "Descending":    
             instructions = self.motion_controller.get_negative_approach_curve(z_range, steps)
-            z = np.linspace(-z_range,0, steps)
+            z = np.linspace(-z_range,0, steps, endpoint=False)
         for i in instructions:
+            time.sleep(3)
             data.append(self.measure_current(voltage))
-            self.motion_controller.move(i)
+            self.motion_controller.move(i[0], i[1], i[2])
         data = np.array(data)
         to_save = np.array([z, data])
         np.savetxt(file, to_save)
@@ -49,11 +50,11 @@ class SECM(object):
 
     def measure_current(self, voltage):
         current, v = self.chronoamperometry(e = voltage)
-        return sum(current)/len(current)
+        return sum(current[0])/len(current[0])
 
     
-    def chronoamperometry(self, interval_time=0.1, e=1, run_time=1, equilibration_time=1.0):
-        return self.potentiostat.chronoamperometry(interval_time=0.1, e=1, run_time=1, equilibration_time=1.0)
+    def chronoamperometry(self, interval_time=0.1, e=1, run_time=1, equilibration_time=2):
+        return self.potentiostat.chronoamperometry(interval_time=0.1, e=1, run_time=1, equilibration_time=1)
     
     def set_voltage(self, v):
         pass

@@ -130,7 +130,7 @@ class Arduino(object):
         direction =  int(distance > 0) # check if positive or negative
         b1 = steps//256 # convert to 2 byte int
         b2 = steps%256 # convert to 2 byte int
-        z = "y" +chr(direction) + chr(b2) +chr(b1) + chr(0) +chr(0) # create byte string
+        z = "z" +chr(direction) + chr(b2) +chr(b1) + chr(0) +chr(0) # create byte string
         z = bytes(z, "utf-8") # actually convert into bytes
         # can construct message byte by byte
         self.send_and_receive(z)
